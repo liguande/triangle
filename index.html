@@ -7,6 +7,7 @@
 	<script src="js/echarts.min.js"></script>
 	<script src="js/jquery.js"></script>
 	<script src="js/semantic.min.js"></script>
+	<script src="js/vue.min.js"></script>
 	<script>
 		function triangle(a,b,c){
 			var top = ""
@@ -37,20 +38,47 @@
 	</script>
 </head>
 <body>
-	<div class="ui segment">
-		
+	<div class="ui grid" id="xueshu">
+		<div class="eight wide column">
+			<div class="ui segment">
+				<div class="ui header">
+					得出的样例
+				</div>
+				<div class="content">
+					<table class="ui orange table">
+						<thead>
+							<tr>
+								<th>a</th>
+								<th>b</th>
+								<th>c</th>
+							</tr>
+						</thead>
+						<tbody>
+							
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="eight wide column">
+			<div class="ui segment">
+				<div id="main" style="height:500px;"></div>
+			</div>
+		</div>
 	</div>
 	<script>
 		var fanwei = 500;
 		var geshu = 500;
+		var count = 4;
 		function myRandom(min,max){
 			return parseInt(Math.floor(Math.random() * (max - min + 1) + min))
 		}
 		$(function(){
 			// 初始化种群
 			var groups = [];
+			var newGroup = [];
 			var shuchu = [];
-			var shiyingdu = [];
+			var shiyingdu = {};
 			for(var i=0;i<geshu;i++){
 				var group = {
 					"a":0,
@@ -62,12 +90,120 @@
 				group.c = myRandom(1,fanwei);
 				groups.push(group);
 			}
+			newGroup = groups;
 			// console.log(groups)
-			for(var i=0;i<geshu;i++){
-				shuchu[i] = triangle(groups[i].a,groups[i].b,groups[i].c);
+			//开始循环
+			for(var kk=0;kk<1000;kk++){
+				groups = newGroup;
+				newGroup = [];
+				var ciping = {};
+				//通过源程序计算出输出
+				for(var i=0;i<geshu;i++){
+					shuchu[i] = triangle(groups[i].a,groups[i].b,groups[i].c);
+				}
+				// console.log(shuchu)
+				//计算词频
+				var keys = [];
+				var values = [];
+				for(var i=0;i<geshu;i++){
+					if(ciping[shuchu[i]] == null){
+						ciping[shuchu[i]] = 1;
+					}else{
+						ciping[shuchu[i]] += 1;
+					}
+				}
+				for(i in ciping){
+					keys.push(i);
+					values.push(ciping[i]);
+				}
+				var myChart = echarts.init(document.getElementById('main'));
+				option = {
+					tooltip: {
+						trigger: 'axis',
+						axisPointer: {
+							type: 'shadow'
+						}
+					},
+					xAxis: {
+						type: 'category',
+						data: keys,
+					},
+					yAxis: {
+						type: 'value'
+					},
+					series: [{
+							data: values,
+							type: 'bar',
+							label: {
+								normal: {
+									show: true,
+									position: 'inside'
+								}
+							}
+						}]
+				};
+				myChart.setOption(option);
+				// console.log(ciping)
+				//计算适应度
+				for(i in ciping){
+					shiyingdu[i] = 1/ciping[i];
+				}
+				console.log(shiyingdu)
+				//终止条件
+				var sum = 0;
+				for(i in shiyingdu){
+					if(shiyingdu[i] >= 1/(geshu/count) - 0.001){
+						sum += 1;
+					}
+				}
+				if(sum == count){
+					for(var i=0;i<geshu;i++){
+						$("tbody").append("<tr><td>"+groups[i].a+"</td><td>"+groups[i].b+"</td><td>"+groups[i].c+"</td></tr>")
+					}
+					break;
+				}
+				//选择
+				for(var i=0;i<geshu;i++){
+					var one = myRandom(0,geshu-1);
+					var two = myRandom(0,geshu-1);
+					if(shiyingdu[triangle(groups[one].a,groups[one].b,groups[one].c)] >= shiyingdu[triangle(groups[two].a,groups[two].b,groups[two].c)]){
+						newGroup.push(groups[one]);
+					}else{
+						newGroup.push(groups[two]);
+					}
+				}
+				// console.log(newGroup);
+				//交叉
+				var jiaocha = Math.random();
+				if(jiaocha<0.8){
+					var one = myRandom(0,geshu-1);
+					var three = myRandom(0,3);
+					if(three == 0){
+						newGroup[one].a = newGroup[one].b;
+					}else if(three == 1){
+						newGroup[one].b = newGroup[one].c;
+					}else if(three == 2){
+						newGroup[one].c = newGroup[one].a;
+					}else{
+						newGroup[one].a = newGroup[one].b;
+						newGroup[one].c = newGroup[one].b;
+					}
+				}
+				//变异
+				var bianyi = Math.random();
+				if(bianyi < 0.2){
+					var one = myRandom(0,geshu-1);
+					var two = myRandom(0,geshu-1);
+					var three = myRandom(0,2);
+					if(three == 0){
+						newGroup[one].a = two;
+					}else if(three == 1){
+						newGroup[one].b = two;
+					}else{
+						newGroup[one].c = two;
+					}
+				}
 			}
-			// console.log(shuchu)
-			
 		})
 	</script>
 </body>
