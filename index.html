@@ -61,8 +61,10 @@
 			</div>
 		</div>
 		<div class="eight wide column">
-			<div class="ui segment">
-				<div id="main" style="height:500px;"></div>
+			<div class="ui segment" style="width:49%;position:fixed">
+				<div class="ui header">产生的用例图像</div>
+				<div id="main" style="height:500px"></div>
+				<div class="ui orange message"></div>
 			</div>
 		</div>
 	</div>
@@ -72,6 +74,30 @@
 		var count = 4;
 		function myRandom(min,max){
 			return parseInt(Math.floor(Math.random() * (max - min + 1) + min))
+		}
+		function inOrNot(a,b){
+			var sum = -1;
+			var cnt;
+			for(var i=0;i<b.length;i++){
+				cnt = 0;
+				for(var j=0;j<a.length;j++){
+					if(b[i][j] == a[j]){
+						cnt+=1;
+					}
+				}
+				if(cnt == a.length){
+					sum+=1;
+				}
+			}
+			return sum;
+		}
+		function repeatOrNot(a){
+			for(var i=0;i<a.length-1;i++){
+				if(a[i] == a[i+1]){
+					return true;
+				}
+			}
+			return false;
 		}
 		$(function(){
 			// 初始化种群
@@ -93,7 +119,7 @@
 			newGroup = groups;
 			// console.log(groups)
 			//开始循环
-			for(var kk=0;kk<1000;kk++){
+			for(var kk=0;kk<500;kk++){
 				groups = newGroup;
 				newGroup = [];
 				var ciping = {};
@@ -160,6 +186,16 @@
 					for(var i=0;i<geshu;i++){
 						$("tbody").append("<tr><td>"+groups[i].a+"</td><td>"+groups[i].b+"</td><td>"+groups[i].c+"</td></tr>")
 					}
+					var sum = 0;
+					var j;
+					for(var i=0;i<geshu;i++){
+						j = inOrNot(groups[i],groups);
+						
+						if(j>0){
+							sum+=j;
+						}
+					}
+					$(".message").html("重复率为："+ (sum/geshu)*100 + "%")
 					break;
 				}
 				//选择
@@ -174,33 +210,54 @@
 				}
 				// console.log(newGroup);
 				//交叉
-				var jiaocha = Math.random();
-				if(jiaocha<0.8){
-					var one = myRandom(0,geshu-1);
-					var three = myRandom(0,3);
-					if(three == 0){
-						newGroup[one].a = newGroup[one].b;
-					}else if(three == 1){
-						newGroup[one].b = newGroup[one].c;
-					}else if(three == 2){
-						newGroup[one].c = newGroup[one].a;
+				for(var i=0;i<geshu;i++){
+					if(repeatOrNot(newGroup[i])){
+						continue;
 					}else{
-						newGroup[one].a = newGroup[one].b;
-						newGroup[one].c = newGroup[one].b;
+						var jiaocha = Math.random();
+						if(jiaocha<0.8){
+							var one = myRandom(0,geshu-1);
+							var three = myRandom(0,3);
+							if(three == 0){
+								newGroup[one].a = newGroup[one].b;
+							}else if(three == 1){
+								newGroup[one].b = newGroup[one].c;
+							}else if(three == 2){
+								newGroup[one].c = newGroup[one].a;
+							}else{
+								newGroup[one].a = newGroup[one].b;
+								newGroup[one].c = newGroup[one].b;
+							}
+						}
 					}
 				}
 				//变异
-				var bianyi = Math.random();
-				if(bianyi < 0.2){
-					var one = myRandom(0,geshu-1);
-					var two = myRandom(0,geshu-1);
-					var three = myRandom(0,2);
-					if(three == 0){
-						newGroup[one].a = two;
-					}else if(three == 1){
-						newGroup[one].b = two;
+				for(var i=0;i<geshu;i++){
+					if(inOrNot(newGroup[i],newGroup)>0){
+						var one = myRandom(0,geshu-1);
+						var two = myRandom(0,geshu-1);
+						var three = myRandom(0,2);
+						if(three == 0){
+							newGroup[one].a = two;
+						}else if(three == 1){
+							newGroup[one].b = two;
+						}else{
+							newGroup[one].c = two;
+						}
 					}else{
-						newGroup[one].c = two;
+						var bianyi = Math.random();
+						if(bianyi < 0.2){
+							var one = myRandom(0,geshu-1);
+							var two = myRandom(0,geshu-1);
+							var three = myRandom(0,2);
+							if(three == 0){
+								newGroup[one].a = two;
+							}else if(three == 1){
+								newGroup[one].b = two;
+							}else{
+								newGroup[one].c = two;
+							}
+						}
 					}
 				}
 			}
