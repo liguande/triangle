@@ -8,34 +8,7 @@
 	<script src="js/jquery.js"></script>
 	<script src="js/semantic.min.js"></script>
 	<script src="js/vue.min.js"></script>
-	<script>
-		function triangle(a,b,c){
-			var top = ""
-			a = parseInt(a)
-			b = parseInt(b)
-			c = parseInt(c)
-			if(a+b>c && b+c>a && a+c>b){
-				top = "a";
-				if((a!=b)&&(b!=c)&&(a!=c)){
-					top = "ac";
-					// alert("普通三角形")
-				}else{
-					top = "ad";
-					if(((a==b)&&(b!=c))||((b==c)&&(c!=a))||((c==a)&&(a!=b))){
-						top = "ade";
-						// alert("等腰三角形")
-					}else{
-						top = "adf";
-						// alert("等边三角形")
-					}
-				}
-			}else{
-				top = "b";
-				// alert("不是三角形")
-			}
-			return top;
-		}
-	</script>
+	<script src="js/common.js"></script>
 </head>
 <body>
 	<div class="ui grid" id="xueshu">
@@ -51,6 +24,8 @@
 								<th>a</th>
 								<th>b</th>
 								<th>c</th>
+								<th>路径</th>
+								<th>适应度</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -70,32 +45,32 @@
 	</div>
 	<script>
 		var fanwei = 500;
-		var geshu = 500;
+		var geshu = 100;
 		var count = 4;
 		function myRandom(min,max){
 			return parseInt(Math.floor(Math.random() * (max - min + 1) + min))
 		}
+		function triangleOrNot(a,b,c){
+			a = parseInt(a);
+			b = parseInt(b);
+			c = parseInt(c);
+			if(a+b>c && b+c>a && a+c>b){
+				return true;
+			}
+			return false;
+		}
 		function inOrNot(a,b){
 			var sum = -1;
-			var cnt;
-			for(var i=0;i<b.length;i++){
-				cnt = 0;
-				for(var j=0;j<a.length;j++){
-					if(b[i][j] == a[j]){
-						cnt+=1;
-					}
-				}
-				if(cnt == a.length){
+			for(var i=0;i<geshu;i++){
+				if(a.a == b[i].a && a.b == b[i].b && a.c == b[i].c){
 					sum+=1;
 				}
 			}
 			return sum;
 		}
 		function repeatOrNot(a){
-			for(var i=0;i<a.length-1;i++){
-				if(a[i] == a[i+1]){
-					return true;
-				}
+			if(a.a == a.b || a.b == a.c || a.a == a.c){
+				return true;
 			}
 			return false;
 		}
@@ -110,6 +85,8 @@
 					"a":0,
 					"b":0,
 					"c":0,
+					"shiyingdu":0,
+					"lujing":"",
 				}
 				group.a = myRandom(1,fanwei);
 				group.b = myRandom(1,fanwei);
@@ -119,13 +96,14 @@
 			newGroup = groups;
 			// console.log(groups)
 			//开始循环
-			for(var kk=0;kk<500;kk++){
+			for(var kk=0;kk<100;kk++){
 				groups = newGroup;
 				newGroup = [];
 				var ciping = {};
 				//通过源程序计算出输出
 				for(var i=0;i<geshu;i++){
 					shuchu[i] = triangle(groups[i].a,groups[i].b,groups[i].c);
+					groups[i].lujing = shuchu[i];
 				}
 				// console.log(shuchu)
 				//计算词频
@@ -174,28 +152,31 @@
 				for(i in ciping){
 					shiyingdu[i] = 1/ciping[i];
 				}
+				for(var i=0;i<geshu;i++){
+					groups[i].shiyingdu = shiyingdu[groups[i].lujing];
+				}
 				console.log(shiyingdu)
 				//终止条件
 				var sum = 0;
 				for(i in shiyingdu){
-					if(shiyingdu[i] >= 1/(geshu/count) - 0.001){
+					if(shiyingdu[i] >= 1/(geshu/count) - 0.5/geshu){
 						sum += 1;
 					}
 				}
 				if(sum == count){
 					for(var i=0;i<geshu;i++){
-						$("tbody").append("<tr><td>"+groups[i].a+"</td><td>"+groups[i].b+"</td><td>"+groups[i].c+"</td></tr>")
+						$("tbody").append("<tr><td>"+groups[i].a+"</td><td>"+groups[i].b+"</td><td>"+groups[i].c+"</td><td>"+groups[i].lujing+"</td><td>"+groups[i].shiyingdu+"</td></tr>")
 					}
-					var sum = 0;
+					var s = 0;
 					var j;
 					for(var i=0;i<geshu;i++){
 						j = inOrNot(groups[i],groups);
 						
 						if(j>0){
-							sum+=j;
+							s+=j;
 						}
 					}
-					$(".message").html("重复率为："+ (sum/geshu)*100 + "%")
+					$(".message").html("重复率为："+ (s/geshu)*100 + "%")
 					break;
 				}
 				//选择
@@ -209,13 +190,36 @@
 					}
 				}
 				// console.log(newGroup);
-				//交叉
+				//变异，不是三角形强制变异，概率为50%
 				for(var i=0;i<geshu;i++){
-					if(repeatOrNot(newGroup[i])){
-						continue;
-					}else{
-						var jiaocha = Math.random();
-						if(jiaocha<0.8){
+					if(!triangleOrNot(newGroup[i].a,newGroup[i].b,newGroup[i].c)){
+						var bianyi = Math.random();
+						if(bianyi <= 0.5){
+							while(true){
+								var group = {
+									"a":0,
+									"b":0,
+									"c":0,
+								}
+								var a = myRandom(0,fanwei-1);
+								var b = myRandom(0,fanwei-1);
+								var c = myRandom(0,fanwei-1);
+								group.a = a;
+								group.b = b;
+								group.c = c;
+								if(a+b>c && a+c>b && b+c>a){
+									break;
+								}
+							}
+							newGroup[i] = group;
+						}
+					}
+				}
+				// 变异，普通三角形变为等腰等边三角形，概率为75%
+				for(var i=0;i<geshu;i++){
+					if(!repeatOrNot(newGroup[i])){
+						var bianyi = Math.random();
+						if(bianyi <= 0.75){
 							var one = myRandom(0,geshu-1);
 							var three = myRandom(0,3);
 							if(three == 0){
@@ -231,33 +235,16 @@
 						}
 					}
 				}
-				//变异
+				// 变异，随机变异，概率为25%
 				for(var i=0;i<geshu;i++){
-					if(inOrNot(newGroup[i],newGroup)>0){
-						var one = myRandom(0,geshu-1);
-						var two = myRandom(0,geshu-1);
-						var three = myRandom(0,2);
-						if(three == 0){
-							newGroup[one].a = two;
-						}else if(three == 1){
-							newGroup[one].b = two;
-						}else{
-							newGroup[one].c = two;
-						}
-					}else{
-						var bianyi = Math.random();
-						if(bianyi < 0.2){
-							var one = myRandom(0,geshu-1);
-							var two = myRandom(0,geshu-1);
-							var three = myRandom(0,2);
-							if(three == 0){
-								newGroup[one].a = two;
-							}else if(three == 1){
-								newGroup[one].b = two;
-							}else{
-								newGroup[one].c = two;
-							}
-						}
+					var bianyi = Math.random();
+					if(bianyi <= 0.25){
+						var a = myRandom(0,fanwei-1);
+						var b = myRandom(0,fanwei-1);
+						var c = myRandom(0,fanwei-1);
+						newGroup[i].a = a;
+						newGroup[i].b = b;
+						newGroup[i].c = c;
 					}
 				}
 			}
